@@ -1,0 +1,9 @@
+[package]
+name = "sprout"
+version = "0.1.0"
+authors = ["inkyu <gofiri@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+lopdf = "0.19"
+failure = "0.1"
