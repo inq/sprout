@@ -54,3 +54,22 @@ impl Point {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum Type {
+    Head(u8),
+    Wing(u8),
+    Rest(u8),
+}
+
+#[derive(Debug)]
+pub struct Object {
+    pub t: Type,
+    pub point: Point,
+}
+
+impl Object {
+    pub fn new(t: Type, point: Point) -> Self {
+        Self { t, point }
+    }
+}

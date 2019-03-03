@@ -41,6 +41,18 @@ impl Svg {
         svg::node::Node::append(&mut self.document, path);
     }
 
+    pub fn circle(&mut self, point: &crate::common::Point) {
+        use svg::node::element::Circle;
+        let circle = Circle::new()
+            .set("cx", f64::from(point.x))
+            .set("cy", f64::from(point.y))
+            .set("r", 3f64)
+            .set("stroke", "black")
+            .set("stroke-width", 1)
+            .set("fill", "red");
+        svg::node::Node::append(&mut self.document, circle);
+    }
+
     pub fn save(&self, filename: &str) -> Result<(), failure::Error> {
         svg::save(filename, &self.document).unwrap();
         Ok(())

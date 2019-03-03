@@ -54,11 +54,14 @@ impl Recognizer {
         Ok(ys
             .iter()
             .collect::<Vec<_>>()
-            .chunks(5)
+            .chunks(10)
             .map(|chunk| -> Result<_, failure::Error> {
                 let &&first = chunk.first().ok_or(Error::EmptyChunk)?;
                 let &&last = chunk.last().ok_or(Error::EmptyChunk)?;
-                Ok(Stanza::new(x, first, width, last - first))
+                let high = chunk[0..5].windows(2).map(|w| *w[1] - *w[0]).collect::<BTreeSet<_>>();
+                let low = chunk[0..5].windows(2).map(|w| *w[1] - *w[0]).collect::<BTreeSet<_>>();
+                assert!(high.len() == 1 && low.len() == 1);
+                Ok(Stanza::new(x, first, width, last - first, *high.iter().next().unwrap()))
             })
             .collect::<Result<Vec<_>, _>>()?)
     }
@@ -70,11 +73,28 @@ impl Recognizer {
             test.vert_line(line);
             count += 1;
         }
+        for line in self.parser.horz_lines.iter() {
+            test.horz_line(line);
+            count += 1;
+        }
+        for obj in self.parser.objects.iter() {
+            test.circle(&obj.point)
+        }
         test.save("output.svg");
+        assert!(count == 0);
     }
 
     pub fn process(&mut self) -> Result<(), failure::Error> {
-        let stanzas = self.detect_stanzas()?;
+        self.debug_vert_lines();
+        let mut stanzas = self.detect_stanzas()?;
+        for stanza in stanzas.iter_mut() {
+            self.parser
+                .vert_lines
+                .retain(|line| !stanza.insert_bar(line));
+            stanza.sort_bars();
+        }
+
+        
         Ok(())
     }
 }

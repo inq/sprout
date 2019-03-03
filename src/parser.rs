@@ -21,6 +21,7 @@ pub enum Error {
 pub struct Parser {
     pub horz_lines: HashSet<HorzLine>,
     pub vert_lines: HashSet<VertLine>,
+    pub objects: Vec<crate::common::Object>,
 }
 
 impl Parser {
@@ -51,6 +52,9 @@ impl Parser {
         let mut point_last = Point::new(0, 0);
         let mut horz_lines = HashSet::new();
         let mut vert_lines = HashSet::new();
+        let mut tm = [Fixed::new(0); 6];
+        let mut td = [Fixed::new(0); 2];
+        let mut heads = vec![];
 
         for op in &mut res.operations {
             match op.operator.as_ref() {
@@ -160,28 +164,31 @@ impl Parser {
                     // [/F7, 128]
                 }
                 "Tm" => {
-                    // TextPos::??
+                    // Text Matrix
                     // [1, 0, 0, -1, 0, 0]
+                    for (i, v) in op.operands.iter().enumerate() {
+                        tm[i] = Fixed::from(v.as_i64().unwrap());
+                    }
                 }
                 "Td" => {
-                    // TextPos::??
+                    // Text Position
                     // [0, 0]
+                    for (i, v) in op.operands.iter().enumerate() {
+                        td[i] = Fixed::from(v.as_i64().map(|i| i as f64).or(v.as_f64()).unwrap());
+                    }
                 }
                 "Tj" => {
                     // TextShowing::??
                     // [()]
                     match &mut op.operands[0] {
-                        Object::String(_vec, _format) => {
+                        Object::String(vec, _format) => {
+                            use crate::common::Type;
                             // 1: C
                             // 2: &
                             // 3: rectangle
                             // 4: lower
                             // 5: small rect
                             // 6: >
-                            // 7: Black
-                            // 8: 8 Wing
-                            // 9: 8 rest
-                            // 10: White
                             // 11: #
                             // 12: half #
                             // 13: 8 rev. wing
@@ -193,6 +200,28 @@ impl Parser {
                             // 19: 16 rest
                             // 20: rect
                             // 21: triangle
+                            let x = td[0] * tm[0] + td[1] * tm[2] + Fixed::new(1) * tm[4];
+                            let y = td[0] * tm[1] + td[1] * tm[3] + Fixed::new(1) * tm[5];
+
+                            let t = match vec.as_slice() {
+                                [0, 7] => Some(Type::Head(4)),
+                                [0, 8] => Some(Type::Wing(8)),
+                                [0, 9] => Some(Type::Rest(8)),
+                                [0, 10] => Some(Type::Head(1)),
+                                [0, 16] => Some(Type::Head(2)),
+                                [0, 3] => Some(Type::Rest(1)),
+                                _ => None
+
+                            };
+                            if let Some(t) = t {
+                                heads.push(
+                                    crate::common::Object::new(
+                                        t,
+                                        Point::new(x, y),
+                                    )
+                                )
+                            }
+
                         }
                         etc => {
                             println!("{:?}", dbg!(&etc));
@@ -215,6 +244,7 @@ impl Parser {
         Ok(Self {
             horz_lines,
             vert_lines,
+            objects: heads,
         })
     }
 }
