@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 lopdf = "0.19"
 failure = "0.1"
+svg = "0.5"

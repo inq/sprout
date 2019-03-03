@@ -13,6 +13,12 @@ impl From<f64> for Fixed {
     }
 }
 
+impl From<Fixed> for f64 {
+    fn from(item: Fixed) -> Self {
+        item.0 as f64 * 0.01f64
+    }
+}
+
 impl std::ops::Sub for Fixed {
     type Output = Fixed;
 

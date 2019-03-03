@@ -4,6 +4,7 @@ extern crate failure;
 mod common;
 mod parser;
 mod recognizer;
+mod svg;
 
 use lopdf::{Document, Object};
 use parser::Parser;

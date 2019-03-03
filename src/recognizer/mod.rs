@@ -1,6 +1,10 @@
+mod stanza;
+
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::common::Fixed;
 use crate::Parser;
-use std::collections::{BTreeMap, BTreeSet};
+use stanza::Stanza;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -13,14 +17,6 @@ pub enum Error {
 #[derive(Debug)]
 pub struct Recognizer {
     parser: Parser,
-}
-
-#[derive(Debug)]
-pub struct Stanza {
-    x: Fixed,
-    y: Fixed,
-    width: Fixed,
-    height: Fixed,
 }
 
 impl Recognizer {
@@ -62,19 +58,23 @@ impl Recognizer {
             .map(|chunk| -> Result<_, failure::Error> {
                 let &&first = chunk.first().ok_or(Error::EmptyChunk)?;
                 let &&last = chunk.last().ok_or(Error::EmptyChunk)?;
-                Ok(Stanza {
-                    x,
-                    y: first,
-                    width: width,
-                    height: last - first,
-                })
+                Ok(Stanza::new(x, first, width, last - first))
             })
             .collect::<Result<Vec<_>, _>>()?)
     }
 
+    fn debug_vert_lines(&self) {
+        let mut test = crate::svg::Svg::new();
+        let mut count = 0;
+        for line in self.parser.vert_lines.iter() {
+            test.vert_line(line);
+            count += 1;
+        }
+        test.save("output.svg");
+    }
+
     pub fn process(&mut self) -> Result<(), failure::Error> {
         let stanzas = self.detect_stanzas()?;
-        println!("{:?}", stanzas);
         Ok(())
     }
 }
