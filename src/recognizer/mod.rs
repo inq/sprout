@@ -1,10 +1,12 @@
+mod bar;
 mod stanza;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::common::Fixed;
+use crate::common::{Fixed, Object};
 use crate::Parser;
-use stanza::Stanza;
+pub use stanza::Stanza;
+pub use bar::Bar;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -84,8 +86,21 @@ impl Recognizer {
         assert!(count == 0);
     }
 
+    pub fn put_obj_into_stanza(stanza: &mut Stanza, obj: &Object) -> bool {
+        if stanza.y < obj.point.y {
+            for bar in stanza.bars.iter_mut().rev() {
+                if bar.x < obj.point.x {
+                    bar.store.push(obj.clone());
+                    break;
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn process(&mut self) -> Result<(), failure::Error> {
-        self.debug_vert_lines();
         let mut stanzas = self.detect_stanzas()?;
         for stanza in stanzas.iter_mut() {
             self.parser
@@ -93,7 +108,15 @@ impl Recognizer {
                 .retain(|line| !stanza.insert_bar(line));
             stanza.sort_bars();
         }
-
+        for stanza in stanzas.iter_mut().rev() {
+            self.parser
+                .objects
+                .retain(|obj| !Self::put_obj_into_stanza(stanza, obj));
+            for bar in stanza.bars.iter() {
+                println!("{:?}, {}", bar.x, bar.store.len());
+            }
+        }
+        self.debug_vert_lines();
         
         Ok(())
     }

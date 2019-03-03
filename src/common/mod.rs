@@ -40,7 +40,7 @@ impl VertLine {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Point {
     pub x: Fixed,
     pub y: Fixed,
@@ -55,14 +55,14 @@ impl Point {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Type {
     Head(u8),
     Wing(u8),
     Rest(u8),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     pub t: Type,
     pub point: Point,
