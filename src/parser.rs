@@ -210,18 +210,11 @@ impl Parser {
                                 [0, 10] => Some(Type::Head(1)),
                                 [0, 16] => Some(Type::Head(2)),
                                 [0, 3] => Some(Type::Rest(1)),
-                                _ => None
-
+                                _ => None,
                             };
                             if let Some(t) = t {
-                                heads.push(
-                                    crate::common::Object::new(
-                                        t,
-                                        Point::new(x, y),
-                                    )
-                                )
+                                heads.push(crate::common::Object::new(t, Point::new(x, y)))
                             }
-
                         }
                         etc => {
                             println!("{:?}", dbg!(&etc));

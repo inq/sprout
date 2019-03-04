@@ -3,10 +3,10 @@ mod stanza;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::common::{Fixed, Object};
+use crate::common::{Fixed, Object, Type};
 use crate::Parser;
-pub use stanza::Stanza;
 pub use bar::Bar;
+pub use stanza::Stanza;
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -60,10 +60,22 @@ impl Recognizer {
             .map(|chunk| -> Result<_, failure::Error> {
                 let &&first = chunk.first().ok_or(Error::EmptyChunk)?;
                 let &&last = chunk.last().ok_or(Error::EmptyChunk)?;
-                let high = chunk[0..5].windows(2).map(|w| *w[1] - *w[0]).collect::<BTreeSet<_>>();
-                let low = chunk[0..5].windows(2).map(|w| *w[1] - *w[0]).collect::<BTreeSet<_>>();
+                let high = chunk[0..5]
+                    .windows(2)
+                    .map(|w| *w[1] - *w[0])
+                    .collect::<BTreeSet<_>>();
+                let low = chunk[0..5]
+                    .windows(2)
+                    .map(|w| *w[1] - *w[0])
+                    .collect::<BTreeSet<_>>();
                 assert!(high.len() == 1 && low.len() == 1);
-                Ok(Stanza::new(x, first, width, last - first, *high.iter().next().unwrap()))
+                Ok(Stanza::new(
+                    x,
+                    first,
+                    width,
+                    last - first,
+                    *high.iter().next().unwrap(),
+                ))
             })
             .collect::<Result<Vec<_>, _>>()?)
     }
@@ -114,12 +126,32 @@ impl Recognizer {
             self.parser
                 .objects
                 .retain(|obj| !Self::put_obj_into_stanza(stanza, obj));
-            for bar in stanza.bars.iter() {
-                println!("{:?}, {}", bar.x, bar.store.len());
+        }
+
+        // TEST
+        let res = vec![];
+
+        for stanza in stanzas.iter_mut() {
+            let border = stanza.y + stanza.height - stanza.scale * 6;
+            for bar in stanza.bars.iter_mut() {
+                bar.store.sort_by(|a, b| a.point.x.cmp(&b.point.x));
+                for obj in bar.store.iter() {
+                    if obj.point.y >= border {
+                        match obj.t {
+                            Type::Head(4) => {
+                                println!("{:?}", (border - obj.point.y) / stanza.scale);
+                            }
+                            _ => (),
+                        }
+                        println!("{:?}", obj);
+                    }
+                }
+
+                panic!("HELLO");
             }
         }
+
         self.debug_vert_lines();
-        
 
         Ok(())
     }

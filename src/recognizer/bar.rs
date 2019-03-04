@@ -1,5 +1,5 @@
-use std::cmp::Ordering;
 use crate::common::{Fixed, Object};
+use std::cmp::Ordering;
 
 #[derive(Debug)]
 pub struct Bar {

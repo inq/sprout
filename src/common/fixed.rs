@@ -43,6 +43,22 @@ impl std::ops::Mul for Fixed {
     }
 }
 
+impl std::ops::Div for Fixed {
+    type Output = f64;
+
+    fn div(self, rhs: Self) -> f64 {
+        self.0 as f64 / rhs.0 as f64
+    }
+}
+
+impl std::ops::Mul<i64> for Fixed {
+    type Output = Fixed;
+
+    fn mul(self, rhs: i64) -> Fixed {
+        Fixed(self.0 * rhs)
+    }
+}
+
 impl std::fmt::Debug for Fixed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Fixed({:.02})", self.0 as f64 / 100.0)

@@ -6,8 +6,8 @@ pub struct Stanza {
     x: Fixed,
     pub y: Fixed,
     width: Fixed,
-    height: Fixed,
-    scale: Fixed,
+    pub height: Fixed,
+    pub scale: Fixed,
     pub bars: Vec<Bar>,
 }
 
