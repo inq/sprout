@@ -101,6 +101,8 @@ impl Recognizer {
     }
 
     pub fn process(&mut self) -> Result<(), failure::Error> {
+        let mut smf = crate::smf::Smf::new(152);
+        smf.write();
         let mut stanzas = self.detect_stanzas()?;
         for stanza in stanzas.iter_mut() {
             self.parser
@@ -118,6 +120,7 @@ impl Recognizer {
         }
         self.debug_vert_lines();
         
+
         Ok(())
     }
 }

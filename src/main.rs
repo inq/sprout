@@ -5,6 +5,7 @@ mod common;
 mod parser;
 mod recognizer;
 mod svg;
+mod smf;
 
 use lopdf::{Document, Object};
 use parser::Parser;
