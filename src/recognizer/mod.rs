@@ -131,40 +131,51 @@ impl Recognizer {
 
         // TEST
         // let res = vec![];
-        let mut collector = Collector::new();
+        let mut collectors = [Collector::new(), Collector::new()];
         let mut i = 0;
 
         for stanza in stanzas.iter_mut() {
-            let border = stanza.y + stanza.height - stanza.scale * 6;
+            let borders = [
+                stanza.y + stanza.height - stanza.scale * 6,
+                stanza.y + stanza.scale * 5,
+            ];
             for bar in stanza.bars.iter_mut() {
                 bar.store.sort_by(|a, b| a.point.x.cmp(&b.point.x));
-                collector.prepare();
+                collectors[0].prepare();
+                collectors[1].prepare();
                 for obj in bar.store.iter() {
-                    if obj.point.y >= border {
-                        match obj.t {
-                            Type::Head(4) => {
-                                collector.put_quarter(
-                                    obj.point.x,
-                                    (border - obj.point.y) / stanza.scale,
-                                );
-                            }
-                            Type::Wing(8) => {
-                                collector.put_wing(obj.point.x);
-                            }
-                            Type::Rest(len) => {
-                                collector.put_rest(obj.point.x, len);
-                            }
-                            _ => {
-                                println!("{:?}", obj);
-                            }
+                    let channel = if obj.point.y >= borders[0] { 0 } else { 1 };
+
+                    match obj.t {
+                        Type::Head(4) => {
+                            collectors[channel].put_quarter(
+                                obj.point.x,
+                                (borders[channel] - obj.point.y) / stanza.scale,
+                            );
                         }
-                        println!("{:?}", collector);
+                        Type::Wing(8) => {
+                            collectors[channel].put_wing(obj.point.x);
+                        }
+                        Type::Rest(len) => {
+                            collectors[channel].put_rest(obj.point.x, len);
+                        }
+                        Type::Head(1) => {
+                            collectors[channel].put_whole(
+                                obj.point.x,
+                                (borders[channel] - obj.point.y) / stanza.scale,
+                            );
+                            println!("{:?} {:?}", borders[channel] - obj.point.y, (borders[channel] - obj.point.y) / stanza.scale);
+                        }
+                        _ => {
+                            println!("{:?}", obj);
+                        }
                     }
                 }
                 i += 1;
-                if i == 5 {
+                if i == 8 {
                     let mut smf = crate::smf::Smf::new(152);
-                    smf.write(&collector);
+                    println!("{:?}", collectors[1]);
+                    smf.write(&collectors[1]);
                     panic!("HELLO");
                 }
             }

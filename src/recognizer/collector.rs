@@ -9,6 +9,7 @@ pub enum Note {
 #[derive(Debug)]
 pub struct Collector {
     quarters: Vec<f64>,
+    wholes: Vec<f64>,
     x: Option<Fixed>,
     pub notes: Vec<Note>,
 }
@@ -17,17 +18,24 @@ impl Collector {
     pub fn new() -> Self {
         Collector {
             quarters: vec![],
+            wholes: vec![],
             x: None,
             notes: vec![],
         }
     }
 
     pub fn prepare(&mut self) {
+        self.clear();
         self.x = None;
     }
 
     pub fn put_quarter(&mut self, x: Fixed, note: f64) {
         self.quarters.push(note);
+        self.x = Some(x);
+    }
+
+    pub fn put_whole(&mut self, x: Fixed, note: f64) {
+        self.wholes.push(note);
         self.x = Some(x);
     }
 
@@ -45,17 +53,54 @@ impl Collector {
         self.x = Some(x);
     }
 
-    pub fn put_rest(&mut self, x: Fixed, len: u8) {
+    fn h2n(h: f64) -> i8 {
+        match (h * 2.) as i32 {
+            -7 => -12,
+            -6 => -10,
+            -5 => -8,
+            -4 => -7,
+            -3 => -5,
+            -2 => -3,
+            -1 => -1,
+            0 => 0,
+            1 => 2,
+            2 => 4,
+            3 => 5,
+            4 => 7,
+            5 => 9,
+            6 => 11,
+            7 => 12,
+            _ => panic!("HEHE"),
+        }
+    }
+
+    fn clear(&mut self) {
         if !self.quarters.is_empty() {
             let note = Note::Note(
                 self.quarters
                     .iter()
-                    .map(|h| 0x3c + (*h * 4.) as i8)
+                    .map(|h| 0x3c + Self::h2n(*h))
                     .collect(),
                 480,
             );
+            self.notes.push(note);
             self.quarters.clear();
         }
+        if !self.wholes.is_empty() {
+            let note = Note::Note(
+                self.wholes
+                    .iter()
+                    .map(|h| 0x3c + Self::h2n(*h))
+                    .collect(),
+                480 * 4,
+            );
+            self.notes.push(note);
+            self.wholes.clear();
+        }
+    }
+
+    pub fn put_rest(&mut self, x: Fixed, len: u8) {
+        self.clear();
         let note = Note::Rest(1920 / len as i32);
         self.notes.push(note);
         self.x = Some(x);
