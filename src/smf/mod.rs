@@ -2,6 +2,8 @@ use ghakuf::messages::{Message, MetaEvent, MidiEvent};
 use ghakuf::writer::*;
 use std::path;
 
+use crate::recognizer::Collector;
+
 pub struct Smf {
     messages: Vec<Message>,
 }
@@ -26,39 +28,43 @@ impl Smf {
         }
     }
 
-    pub fn write(&mut self) {
-        self.messages.push(Message::MidiEvent {
-            delta_time: 0,
-            event: MidiEvent::NoteOn {
-                ch: 0,
-                note: 0x3c,
-                velocity: 96,
-            },
-        });
-        self.messages.push(Message::MidiEvent {
-            delta_time: 0,
-            event: MidiEvent::NoteOn {
-                ch: 0,
-                note: 0x40,
-                velocity: 96,
-            },
-        });
-        self.messages.push(Message::MidiEvent {
-            delta_time: 960,
-            event: MidiEvent::NoteOff {
-                ch: 0,
-                note: 0x3c,
-                velocity: 64,
-            },
-        });
-        self.messages.push(Message::MidiEvent {
-            delta_time: 0,
-            event: MidiEvent::NoteOff {
-                ch: 0,
-                note: 0x40,
-                velocity: 96,
-            },
-        });
+    pub fn write(&mut self, collector: &Collector) {
+        use crate::recognizer::Note;
+
+        let mut delta = 0;
+        for note in collector.notes.iter() {
+            match note {
+                Note::Note(data, len) => {
+                    for tone in data.iter() {
+                        self.messages.push(Message::MidiEvent {
+                            delta_time: delta,
+                            event: MidiEvent::NoteOn {
+                                ch: 0,
+                                note: *tone as u8,
+                                velocity: 96,
+                            },
+                        });
+                        delta = 0;
+                    }
+                    delta = *len as u32;
+                    for tone in data.iter() {
+                        self.messages.push(Message::MidiEvent {
+                            delta_time: delta,
+                            event: MidiEvent::NoteOff {
+                                ch: 0,
+                                note: *tone as u8,
+                                velocity: 64,
+                            },
+                        });
+                        delta = 0;
+                    }
+                }
+                Note::Rest(len) => {
+                    delta += *len as u32;
+                }
+            }
+        }
+
         self.messages.push(Message::MetaEvent {
             delta_time: 1024,
             event: MetaEvent::EndOfTrack,

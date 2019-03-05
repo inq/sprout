@@ -1,4 +1,5 @@
 mod bar;
+mod collector;
 mod stanza;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -7,6 +8,8 @@ use crate::common::{Fixed, Object, Type};
 use crate::Parser;
 pub use bar::Bar;
 pub use stanza::Stanza;
+
+pub use collector::{Collector, Note};
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -113,8 +116,6 @@ impl Recognizer {
     }
 
     pub fn process(&mut self) -> Result<(), failure::Error> {
-        let mut smf = crate::smf::Smf::new(152);
-        smf.write();
         let mut stanzas = self.detect_stanzas()?;
         for stanza in stanzas.iter_mut() {
             self.parser
@@ -129,25 +130,43 @@ impl Recognizer {
         }
 
         // TEST
-        let res = vec![];
+        // let res = vec![];
+        let mut collector = Collector::new();
+        let mut i = 0;
 
         for stanza in stanzas.iter_mut() {
             let border = stanza.y + stanza.height - stanza.scale * 6;
             for bar in stanza.bars.iter_mut() {
                 bar.store.sort_by(|a, b| a.point.x.cmp(&b.point.x));
+                collector.prepare();
                 for obj in bar.store.iter() {
                     if obj.point.y >= border {
                         match obj.t {
                             Type::Head(4) => {
-                                println!("{:?}", (border - obj.point.y) / stanza.scale);
+                                collector.put_quarter(
+                                    obj.point.x,
+                                    (border - obj.point.y) / stanza.scale,
+                                );
                             }
-                            _ => (),
+                            Type::Wing(8) => {
+                                collector.put_wing(obj.point.x);
+                            }
+                            Type::Rest(len) => {
+                                collector.put_rest(obj.point.x, len);
+                            }
+                            _ => {
+                                println!("{:?}", obj);
+                            }
                         }
-                        println!("{:?}", obj);
+                        println!("{:?}", collector);
                     }
                 }
-
-                panic!("HELLO");
+                i += 1;
+                if i == 5 {
+                    let mut smf = crate::smf::Smf::new(152);
+                    smf.write(&collector);
+                    panic!("HELLO");
+                }
             }
         }
 
