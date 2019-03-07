@@ -8,6 +8,30 @@ pub struct Smf {
     messages: Vec<Message>,
 }
 
+pub enum Action {
+    NoteOn {
+        time: u32,
+        ch: u8,
+        note: u8,
+        velocity: u8,
+    },
+    NoteOff {
+        time: u32,
+        ch: u8,
+        note: u8,
+        velocity: u8,
+    },
+}
+
+impl Action {
+    fn time(&self) -> u32 {
+        match self {
+            Action::NoteOn { time, .. } => *time,
+            Action::NoteOff { time, .. } => *time,
+        }
+    }
+}
+
 impl Smf {
     pub fn new(bpm: u32) -> Self {
         let tempo: u32 = 60 * 1000000 / bpm;
@@ -28,39 +52,74 @@ impl Smf {
         }
     }
 
-    pub fn write(&mut self, collector: &Collector) {
+    pub fn write(&mut self, collectors: &[Collector]) {
         use crate::recognizer::Note;
 
-        let mut delta = 0;
-        for note in collector.notes.iter() {
-            match note {
-                Note::Note(data, len) => {
-                    for tone in data.iter() {
-                        self.messages.push(Message::MidiEvent {
-                            delta_time: delta,
-                            event: MidiEvent::NoteOn {
-                                ch: 0,
+        let mut actions = vec![];
+        for (i, collector) in collectors.iter().enumerate() {
+            let mut time = 0;
+            for note in collector.notes.iter() {
+                match note {
+                    Note::Note(data, len) => {
+                        for tone in data.iter() {
+                            actions.push(Action::NoteOn {
+                                time: time,
+                                ch: i as u8,
                                 note: *tone as u8,
                                 velocity: 96,
-                            },
-                        });
-                        delta = 0;
-                    }
-                    delta = *len as u32;
-                    for tone in data.iter() {
-                        self.messages.push(Message::MidiEvent {
-                            delta_time: delta,
-                            event: MidiEvent::NoteOff {
-                                ch: 0,
+                            });
+                            actions.push(Action::NoteOff {
+                                time: time + *len as u32,
+                                ch: i as u8,
                                 note: *tone as u8,
                                 velocity: 64,
-                            },
-                        });
-                        delta = 0;
+                            });
+                        }
+                        time += *len as u32;
+                    }
+                    Note::Rest(len) => {
+                        time += *len as u32;
                     }
                 }
-                Note::Rest(len) => {
-                    delta += *len as u32;
+            }
+        }
+        actions.sort_by(|a, b| Action::time(a).cmp(&Action::time(b)));
+        let mut clock = 0;
+        for action in actions.iter() {
+            match action {
+                Action::NoteOn {
+                    time,
+                    ch,
+                    note,
+                    velocity,
+                } => {
+                    let delta = time - clock;
+                    clock = *time;
+                    self.messages.push(Message::MidiEvent {
+                        delta_time: delta,
+                        event: MidiEvent::NoteOn {
+                            ch: *ch,
+                            note: *note,
+                            velocity: *velocity,
+                        },
+                    });
+                }
+                Action::NoteOff {
+                    time,
+                    ch,
+                    note,
+                    velocity,
+                } => {
+                    let delta = time - clock;
+                    clock = *time;
+                    self.messages.push(Message::MidiEvent {
+                        delta_time: delta,
+                        event: MidiEvent::NoteOff {
+                            ch: *ch,
+                            note: *note,
+                            velocity: *velocity,
+                        },
+                    });
                 }
             }
         }

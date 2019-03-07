@@ -55,14 +55,19 @@ impl Collector {
 
     fn h2n(h: f64) -> i8 {
         match (h * 2.) as i32 {
-            -7 => -12,
+            -12 => -20,
+            -11 => -19,
+            -10 => -17,
+            -9 => -15,
+            -8 => -13,
+            -7 => -12, // C
             -6 => -10,
             -5 => -8,
             -4 => -7,
             -3 => -5,
             -2 => -3,
             -1 => -1,
-            0 => 0,
+            0 => 0, // C
             1 => 2,
             2 => 4,
             3 => 5,
@@ -70,17 +75,18 @@ impl Collector {
             5 => 9,
             6 => 11,
             7 => 12,
-            _ => panic!("HEHE"),
+            8 => 14,
+            9 => 16,
+            10 => 17,
+            11 => 19,
+            x => panic!("HEHE {}", x),
         }
     }
 
     fn clear(&mut self) {
         if !self.quarters.is_empty() {
             let note = Note::Note(
-                self.quarters
-                    .iter()
-                    .map(|h| 0x3c + Self::h2n(*h))
-                    .collect(),
+                self.quarters.iter().map(|h| 0x3c + Self::h2n(*h)).collect(),
                 480,
             );
             self.notes.push(note);
@@ -88,10 +94,7 @@ impl Collector {
         }
         if !self.wholes.is_empty() {
             let note = Note::Note(
-                self.wholes
-                    .iter()
-                    .map(|h| 0x3c + Self::h2n(*h))
-                    .collect(),
+                self.wholes.iter().map(|h| 0x3c + Self::h2n(*h)).collect(),
                 480 * 4,
             );
             self.notes.push(note);

@@ -144,7 +144,11 @@ impl Recognizer {
                 collectors[0].prepare();
                 collectors[1].prepare();
                 for obj in bar.store.iter() {
-                    let channel = if obj.point.y >= borders[0] { 0 } else { 1 };
+                    let channel = if obj.point.y >= stanza.y + stanza.height - stanza.scale * 5 {
+                        0
+                    } else {
+                        1
+                    };
 
                     match obj.t {
                         Type::Head(4) => {
@@ -164,7 +168,11 @@ impl Recognizer {
                                 obj.point.x,
                                 (borders[channel] - obj.point.y) / stanza.scale,
                             );
-                            println!("{:?} {:?}", borders[channel] - obj.point.y, (borders[channel] - obj.point.y) / stanza.scale);
+                            println!(
+                                "{:?} {:?}",
+                                borders[channel] - obj.point.y,
+                                (borders[channel] - obj.point.y) / stanza.scale
+                            );
                         }
                         _ => {
                             println!("{:?}", obj);
@@ -172,10 +180,9 @@ impl Recognizer {
                     }
                 }
                 i += 1;
-                if i == 8 {
+                if i == 16 {
                     let mut smf = crate::smf::Smf::new(152);
-                    println!("{:?}", collectors[1]);
-                    smf.write(&collectors[1]);
+                    smf.write(&collectors);
                     panic!("HELLO");
                 }
             }
