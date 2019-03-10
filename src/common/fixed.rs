@@ -3,19 +3,19 @@ pub struct Fixed(i64);
 
 impl From<i64> for Fixed {
     fn from(item: i64) -> Self {
-        Self(item * 100)
+        Self(item * 10000)
     }
 }
 
 impl From<f64> for Fixed {
     fn from(item: f64) -> Self {
-        Self((item * 100f64) as i64)
+        Self((item * 10000f64) as i64)
     }
 }
 
 impl From<Fixed> for f64 {
     fn from(item: Fixed) -> Self {
-        item.0 as f64 * 0.01f64
+        item.0 as f64 * 0.0001f64
     }
 }
 
@@ -32,6 +32,22 @@ impl std::ops::Add for Fixed {
 
     fn add(self, rhs: Self) -> Fixed {
         Fixed(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Mul<Fixed> for f64 {
+    type Output = Fixed;
+
+    fn mul(self, rhs: Fixed) -> Fixed {
+        Fixed((self * rhs.0 as f64) as i64)
+    }
+}
+
+impl std::ops::Mul<f64> for Fixed {
+    type Output = Fixed;
+
+    fn mul(self, rhs: f64) -> Fixed {
+        Fixed((self.0 as f64 * rhs) as i64)
     }
 }
 

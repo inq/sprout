@@ -3,6 +3,30 @@ mod fixed;
 pub use fixed::Fixed;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Line {
+    pub x1: Fixed,
+    pub x2: Fixed,
+    pub y1: Fixed,
+    pub y2: Fixed,
+}
+
+impl Line {
+    pub fn new<X1: Into<Fixed>, X2: Into<Fixed>, Y1: Into<Fixed>, Y2: Into<Fixed>>(
+        x1: X1,
+        x2: X2,
+        y1: Y1,
+        y2: Y2,
+    ) -> Self {
+        Self {
+            x1: x1.into(),
+            x2: x2.into(),
+            y1: y1.into(),
+            y2: y2.into(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct HorzLine {
     pub x1: Fixed,
     pub x2: Fixed,

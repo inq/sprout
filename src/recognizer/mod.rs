@@ -86,12 +86,17 @@ impl Recognizer {
     fn debug_vert_lines(&self) {
         let mut test = crate::svg::Svg::new();
         let mut count = 0;
+        println!("{:?}", self.parser);
         for line in self.parser.vert_lines.iter() {
             test.vert_line(line);
             count += 1;
         }
         for line in self.parser.horz_lines.iter() {
             test.horz_line(line);
+            count += 1;
+        }
+        for line in self.parser.lines.iter() {
+            test.line(line);
             count += 1;
         }
         for obj in self.parser.objects.iter() {
@@ -116,6 +121,8 @@ impl Recognizer {
     }
 
     pub fn process(&mut self) -> Result<(), failure::Error> {
+        self.debug_vert_lines();
+
         let mut stanzas = self.detect_stanzas()?;
         for stanza in stanzas.iter_mut() {
             self.parser
@@ -180,15 +187,14 @@ impl Recognizer {
                     }
                 }
                 i += 1;
-                if i == 16 {
+                if i == 8 {
                     let mut smf = crate::smf::Smf::new(152);
                     smf.write(&collectors);
+                    self.debug_vert_lines();
                     panic!("HELLO");
                 }
             }
         }
-
-        self.debug_vert_lines();
 
         Ok(())
     }

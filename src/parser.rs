@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use lopdf::content::Content;
 use lopdf::{Object, Stream};
 
-use crate::common::{Fixed, HorzLine, Point, VertLine};
+use crate::common::{Fixed, HorzLine, Line, Point, VertLine};
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -21,6 +21,7 @@ pub enum Error {
 pub struct Parser {
     pub horz_lines: HashSet<HorzLine>,
     pub vert_lines: HashSet<VertLine>,
+    pub lines: HashSet<Line>,
     pub objects: Vec<crate::common::Object>,
 }
 
@@ -52,25 +53,43 @@ impl Parser {
         let mut point_last = Point::new(0, 0);
         let mut horz_lines = HashSet::new();
         let mut vert_lines = HashSet::new();
+        let mut lines = HashSet::new();
         let mut tm = [Fixed::new(0); 6];
+        let mut gm = [
+            Fixed::new(1),
+            Fixed::new(0),
+            Fixed::new(0),
+            Fixed::new(-1),
+            Fixed::new(0),
+            Fixed::new(0),
+        ];
         let mut td = [Fixed::new(0); 2];
+        let mut stack = vec![];
+        stack.push(gm.clone());
         let mut heads = vec![];
 
         for op in &mut res.operations {
             match op.operator.as_ref() {
                 "m" => match *Self::read_num_slice(&op.operands)?.as_slice() {
                     [x, y] => {
+                        let x = x * gm[0] + y * gm[2] + Fixed::new(1) * gm[4];
+                        let y = x * gm[1] + y * gm[3] + Fixed::new(1) * gm[5];
+
                         point_last = Point::new(x, y);
                     }
                     _ => return Err(failure::Error::from(Error::Operand)),
                 },
                 "l" => match *Self::read_num_slice(&op.operands)?.as_slice() {
                     [x, y] => {
+                        let x = x * gm[0] + y * gm[2] + Fixed::new(1) * gm[4];
+                        let y = x * gm[1] + y * gm[3] + Fixed::new(1) * gm[5];
+
                         if point_last.y == y.into() {
                             horz_lines.insert(HorzLine::new(point_last.x, x, y));
-                        }
-                        if point_last.x == x.into() {
+                        } else if point_last.x == x.into() {
                             vert_lines.insert(VertLine::new(x, point_last.y, y));
+                        } else {
+                            lines.insert(Line::new(point_last.x, x, point_last.y, y));
                         }
                         point_last = Point::new(x, y);
                     }
@@ -87,6 +106,8 @@ impl Parser {
                 }
                 "q" => {
                     // Save the current graphics state on the graphics state stack
+                    println!("Save: {}", stack.len());
+                    stack.push(gm.clone());
                 }
                 "gs" => {
                     // Set the specified parameters in the graphics state
@@ -101,10 +122,26 @@ impl Parser {
                 }
                 "cm" => {
                     // Modify the current transformation matrix (CTM) by concatenating the specified matrix
+                    println!("{:?}", op.operands);
+                    match *Self::read_num_slice(&op.operands)?.as_slice() {
+                        [a, b, c, d, e, f] => {
+                            let p = gm.clone();
+
+                            gm[0] = p[0] * a + p[2] * b;
+                            gm[1] = p[1] * a + p[3] * b;
+                            gm[2] = p[0] * c + p[2] * d;
+                            gm[3] = p[1] * c + p[3] * d;
+                            gm[4] = p[0] * e + p[2] * e + p[4];
+                            gm[5] = p[1] * e + p[3] * e + p[5];
+                        }
+                        _ => return Err(failure::Error::from(Error::Operand)),
+                    }
                     // [0.06, 0, 0, -0.06, 0, 842]
                 }
                 "Q" => {
                     // Restore the graphics state by removing the most recently saved state from the stack and making it the current state
+                    println!("Restore: {}", stack.len());
+                    gm = stack.pop().unwrap();
                 }
                 "SCN" => {
                     // Color::??
@@ -237,6 +274,7 @@ impl Parser {
         Ok(Self {
             horz_lines,
             vert_lines,
+            lines,
             objects: heads,
         })
     }

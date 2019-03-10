@@ -5,7 +5,7 @@ pub struct Svg {
 impl Svg {
     pub fn new() -> Self {
         Self {
-            document: svg::Document::new().set("viewBox", (0, 0, 5000, 7000)),
+            document: svg::Document::new().set("viewBox", (0, 0, 1000, 1000)),
         }
     }
 
@@ -21,6 +21,22 @@ impl Svg {
             .set("fill", "none")
             .set("stroke", "black")
             .set("stroke-width", 1)
+            .set("d", data);
+        svg::node::Node::append(&mut self.document, path);
+    }
+
+    pub fn line(&mut self, line: &crate::common::Line) {
+        use svg::node::element::path::Data;
+        use svg::node::element::Path;
+
+        let data = Data::new()
+            .move_to((f64::from(line.x1), f64::from(line.y1)))
+            .line_to((f64::from(line.x2), f64::from(line.y2)))
+            .close();
+        let path = Path::new()
+            .set("fill", "none")
+            .set("stroke", "blue")
+            .set("stroke-width", 2)
             .set("d", data);
         svg::node::Node::append(&mut self.document, path);
     }
