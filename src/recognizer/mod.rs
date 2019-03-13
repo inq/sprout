@@ -86,7 +86,6 @@ impl Recognizer {
     fn debug_vert_lines(&self) {
         let mut test = crate::svg::Svg::new();
         let mut count = 0;
-        println!("{:?}", self.parser);
         for line in self.parser.vert_lines.iter() {
             test.vert_line(line);
             count += 1;
@@ -97,6 +96,10 @@ impl Recognizer {
         }
         for line in self.parser.lines.iter() {
             test.line(line);
+            count += 1;
+        }
+        for line in self.parser.quadras.iter() {
+            test.quadra(line);
             count += 1;
         }
         for obj in self.parser.objects.iter() {

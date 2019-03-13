@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use lopdf::content::Content;
 use lopdf::{Object, Stream};
 
-use crate::common::{Fixed, HorzLine, Line, Point, VertLine};
+use crate::common::{Fixed, HorzLine, Line, Point, Polygon, PolygonRes, Quadrangle, VertLine};
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -21,6 +21,7 @@ pub enum Error {
 pub struct Parser {
     pub horz_lines: HashSet<HorzLine>,
     pub vert_lines: HashSet<VertLine>,
+    pub quadras: HashSet<Quadrangle>,
     pub lines: HashSet<Line>,
     pub objects: Vec<crate::common::Object>,
 }
@@ -54,6 +55,7 @@ impl Parser {
         let mut horz_lines = HashSet::new();
         let mut vert_lines = HashSet::new();
         let mut lines = HashSet::new();
+        let mut quadras = HashSet::new();
         let mut tm = [Fixed::new(0); 6];
         let mut gm = [
             Fixed::new(1),
@@ -68,6 +70,8 @@ impl Parser {
         stack.push(gm.clone());
         let mut heads = vec![];
 
+        let mut polygon: Option<Polygon> = None;
+
         for op in &mut res.operations {
             match op.operator.as_ref() {
                 "m" => match *Self::read_num_slice(&op.operands)?.as_slice() {
@@ -76,6 +80,16 @@ impl Parser {
                         let y = x * gm[1] + y * gm[3] + Fixed::new(1) * gm[5];
 
                         point_last = Point::new(x, y);
+                        if let Some(p) = polygon {
+                            match p.build() {
+                                PolygonRes::VertLine(v) => vert_lines.insert(v),
+                                PolygonRes::HorzLine(v) => horz_lines.insert(v),
+                                PolygonRes::Line(l) => lines.insert(l),
+                                PolygonRes::Quadrangle(l) => quadras.insert(l),
+                                Empty => true,
+                            };
+                        }
+                        polygon = Some(Polygon::new(x, y));
                     }
                     _ => return Err(failure::Error::from(Error::Operand)),
                 },
@@ -84,12 +98,8 @@ impl Parser {
                         let x = x * gm[0] + y * gm[2] + Fixed::new(1) * gm[4];
                         let y = x * gm[1] + y * gm[3] + Fixed::new(1) * gm[5];
 
-                        if point_last.y == y.into() {
-                            horz_lines.insert(HorzLine::new(point_last.x, x, y));
-                        } else if point_last.x == x.into() {
-                            vert_lines.insert(VertLine::new(x, point_last.y, y));
-                        } else {
-                            lines.insert(Line::new(point_last.x, x, point_last.y, y));
+                        if let Some(p) = &mut polygon {
+                            p.push(x, y);
                         }
                         point_last = Point::new(x, y);
                     }
@@ -103,10 +113,19 @@ impl Parser {
                 },
                 "h" => {
                     // Finish drawing
+                    if let Some(p) = polygon {
+                        match p.build() {
+                            PolygonRes::VertLine(v) => vert_lines.insert(v),
+                            PolygonRes::HorzLine(v) => horz_lines.insert(v),
+                            PolygonRes::Line(l) => lines.insert(l),
+                            PolygonRes::Quadrangle(l) => quadras.insert(l),
+                            Empty => true,
+                        };
+                    }
+                    polygon = None;
                 }
                 "q" => {
                     // Save the current graphics state on the graphics state stack
-                    println!("Save: {}", stack.len());
                     stack.push(gm.clone());
                 }
                 "gs" => {
@@ -122,7 +141,6 @@ impl Parser {
                 }
                 "cm" => {
                     // Modify the current transformation matrix (CTM) by concatenating the specified matrix
-                    println!("{:?}", op.operands);
                     match *Self::read_num_slice(&op.operands)?.as_slice() {
                         [a, b, c, d, e, f] => {
                             let p = gm.clone();
@@ -140,7 +158,6 @@ impl Parser {
                 }
                 "Q" => {
                     // Restore the graphics state by removing the most recently saved state from the stack and making it the current state
-                    println!("Restore: {}", stack.len());
                     gm = stack.pop().unwrap();
                 }
                 "SCN" => {
@@ -217,6 +234,7 @@ impl Parser {
                 "Tj" => {
                     // TextShowing::??
                     // [()]
+                    let x = op.clone();
                     match &mut op.operands[0] {
                         Object::String(vec, _format) => {
                             use crate::common::Type;
@@ -237,9 +255,16 @@ impl Parser {
                             // 19: 16 rest
                             // 20: rect
                             // 21: triangle
-                            let x = td[0] * tm[0] + td[1] * tm[2] + Fixed::new(1) * tm[4];
-                            let y = td[0] * tm[1] + td[1] * tm[3] + Fixed::new(1) * tm[5];
-
+                            let xc = td[0] * gm[0] + td[1] * gm[2] + Fixed::new(1) * gm[4];
+                            let yc = td[0] * gm[1] + td[1] * gm[3] + Fixed::new(1) * gm[5];
+                            let x = xc * tm[0] + yc * tm[2] + Fixed::new(1) * tm[4];
+                            let y = xc * tm[1] + yc * tm[3] + Fixed::new(1) * tm[5];
+                            /*
+                                                        let xf = td[0] * tm[0] + td[1] * tm[2] + Fixed::new(1) * tm[4];
+                                                        let yf = td[0] * tm[1] + td[1] * tm[3] + Fixed::new(1) * tm[5];
+                                                        let x = xf * gm[0] + yf * gm[2] + Fixed::new(1) * gm[4];
+                                                        let y = xf * gm[1] + yf * gm[3] + Fixed::new(1) * gm[5];
+                            */
                             let t = match vec.as_slice() {
                                 [0, 7] => Some(Type::Head(4)),
                                 [0, 8] => Some(Type::Wing(8)),
@@ -275,6 +300,7 @@ impl Parser {
             horz_lines,
             vert_lines,
             lines,
+            quadras,
             objects: heads,
         })
     }

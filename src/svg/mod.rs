@@ -25,6 +25,24 @@ impl Svg {
         svg::node::Node::append(&mut self.document, path);
     }
 
+    pub fn quadra(&mut self, quadra: &crate::common::Quadrangle) {
+        use svg::node::element::path::Data;
+        use svg::node::element::Path;
+
+        let data = Data::new()
+            .move_to((f64::from(quadra.points[0].x), f64::from(quadra.points[0].y)))
+            .line_to((f64::from(quadra.points[1].x), f64::from(quadra.points[1].y)))
+            .line_to((f64::from(quadra.points[2].x), f64::from(quadra.points[2].y)))
+            .line_to((f64::from(quadra.points[3].x), f64::from(quadra.points[3].y)))
+            .close();
+        let path = Path::new()
+            .set("fill", "none")
+            .set("stroke", "green")
+            .set("stroke-width", 1)
+            .set("d", data);
+        svg::node::Node::append(&mut self.document, path);
+    }
+
     pub fn line(&mut self, line: &crate::common::Line) {
         use svg::node::element::path::Data;
         use svg::node::element::Path;
@@ -36,7 +54,7 @@ impl Svg {
         let path = Path::new()
             .set("fill", "none")
             .set("stroke", "blue")
-            .set("stroke-width", 2)
+            .set("stroke-width", 1)
             .set("d", data);
         svg::node::Node::append(&mut self.document, path);
     }
@@ -62,7 +80,7 @@ impl Svg {
         let circle = Circle::new()
             .set("cx", f64::from(point.x))
             .set("cy", f64::from(point.y))
-            .set("r", 3f64)
+            .set("r", 1f64)
             .set("stroke", "black")
             .set("stroke-width", 1)
             .set("fill", "red");

@@ -17,7 +17,6 @@ fn main() -> Result<(), failure::Error> {
     for (_page, page_id) in pages {
         for object_id in doc.get_page_contents(page_id) {
             if let Some(Object::Stream(ref mut stream)) = doc.get_object_mut(object_id) {
-                println!("DDD");
                 let parsed = Parser::new(stream)?;
                 let mut recognized = Recognizer::new(parsed);
                 recognized.process();

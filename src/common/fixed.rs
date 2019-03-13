@@ -55,7 +55,7 @@ impl std::ops::Mul for Fixed {
     type Output = Fixed;
 
     fn mul(self, rhs: Self) -> Fixed {
-        Fixed(self.0 * rhs.0 / 100)
+        Fixed(self.0 * rhs.0 / 10000)
     }
 }
 
@@ -77,7 +77,7 @@ impl std::ops::Mul<i64> for Fixed {
 
 impl std::fmt::Debug for Fixed {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Fixed({:.02})", self.0 as f64 / 100.0)
+        write!(f, "Fixed({:.02})", self.0 as f64 / 10000.0)
     }
 }
 

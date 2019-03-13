@@ -2,19 +2,19 @@ mod fixed;
 
 pub use fixed::Fixed;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Line {
     pub x1: Fixed,
-    pub x2: Fixed,
     pub y1: Fixed,
+    pub x2: Fixed,
     pub y2: Fixed,
 }
 
 impl Line {
     pub fn new<X1: Into<Fixed>, X2: Into<Fixed>, Y1: Into<Fixed>, Y2: Into<Fixed>>(
         x1: X1,
-        x2: X2,
         y1: Y1,
+        x2: X2,
         y2: Y2,
     ) -> Self {
         Self {
@@ -22,6 +22,66 @@ impl Line {
             x2: x2.into(),
             y1: y1.into(),
             y2: y2.into(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Quadrangle {
+    pub points: [Point; 4],
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Polygon {
+    pub lines: Vec<Line>,
+    pub point: Point,
+}
+
+pub enum PolygonRes {
+    HorzLine(HorzLine),
+    VertLine(VertLine),
+    Line(Line),
+    Quadrangle(Quadrangle),
+    Empty,
+}
+
+impl Polygon {
+    pub fn new<X: Into<Fixed>, Y: Into<Fixed>>(x: X, y: Y) -> Self {
+        Self {
+            point: Point::new(x, y),
+            lines: vec![],
+        }
+    }
+
+    pub fn push<X: Copy + Into<Fixed>, Y: Copy + Into<Fixed>>(&mut self, x: X, y: Y) {
+        let point = std::mem::replace(&mut self.point, Point::new(x, y));
+        self.lines.push(Line::new(point.x, point.y, x, y));
+    }
+
+    pub fn build(&self) -> PolygonRes {
+        match self.lines.len() {
+            1 => {
+                let line = &self.lines[0];
+                if line.y1 == line.y2 {
+                    PolygonRes::HorzLine(HorzLine::new(line.x1, line.x2, line.y1))
+                } else if line.x1 == line.x2 {
+                    PolygonRes::VertLine(VertLine::new(line.x1, line.y1, line.y2))
+                } else {
+                    PolygonRes::Line(line.clone())
+                }
+            }
+            4 => PolygonRes::Quadrangle(Quadrangle {
+                points: [
+                    Point::new(self.lines[0].x1, self.lines[0].y1),
+                    Point::new(self.lines[1].x1, self.lines[1].y1),
+                    Point::new(self.lines[2].x1, self.lines[2].y1),
+                    Point::new(self.lines[3].x1, self.lines[3].y1),
+                ],
+            }),
+            0 => PolygonRes::Empty,
+            _ => {
+                panic!("{:?}", self.lines);
+            }
         }
     }
 }
