@@ -10,7 +10,7 @@ pub struct Matrix {
 impl Matrix {
     pub fn identity() -> Self {
         Self {
-            data: [Vector::new(1, 0, 0), Vector::new(0, -1, 1)],
+            data: [Vector::new(1, 0, 0), Vector::new(0, -1, 0)],
         }
     }
 
