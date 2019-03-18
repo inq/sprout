@@ -105,22 +105,8 @@ impl Recognizer {
         for obj in self.parser.objects.iter() {
             test.circle(&obj.point)
         }
-        test.save("output.svg");
+        test.save("target/output.svg").unwrap();
         assert!(count == 0);
-    }
-
-    pub fn put_obj_into_stanza(stanza: &mut Stanza, obj: &Object) -> bool {
-        if stanza.y < obj.point.y {
-            for bar in stanza.bars.iter_mut().rev() {
-                if bar.x < obj.point.x {
-                    bar.store.push(obj.clone());
-                    break;
-                }
-            }
-            true
-        } else {
-            false
-        }
     }
 
     pub fn process(&mut self) -> Result<(), failure::Error> {
@@ -134,69 +120,11 @@ impl Recognizer {
             stanza.sort_bars();
         }
         for stanza in stanzas.iter_mut().rev() {
-            self.parser
-                .objects
-                .retain(|obj| !Self::put_obj_into_stanza(stanza, obj));
+            self.parser.objects.retain(|obj| !stanza.put_object(obj));
         }
 
-        // TEST
-        // let res = vec![];
-        let mut collectors = [Collector::new(), Collector::new()];
-        let mut i = 0;
-
         for stanza in stanzas.iter_mut() {
-            let borders = [
-                stanza.y + stanza.height - stanza.scale * 6,
-                stanza.y + stanza.scale * 5,
-            ];
-            for bar in stanza.bars.iter_mut() {
-                bar.store.sort_by(|a, b| a.point.x.cmp(&b.point.x));
-                collectors[0].prepare();
-                collectors[1].prepare();
-                for obj in bar.store.iter() {
-                    let channel = if obj.point.y >= stanza.y + stanza.height - stanza.scale * 5 {
-                        0
-                    } else {
-                        1
-                    };
-
-                    match obj.t {
-                        Type::Head(4) => {
-                            collectors[channel].put_quarter(
-                                obj.point.x,
-                                (borders[channel] - obj.point.y) / stanza.scale,
-                            );
-                        }
-                        Type::Wing(8) => {
-                            collectors[channel].put_wing(obj.point.x);
-                        }
-                        Type::Rest(len) => {
-                            collectors[channel].put_rest(obj.point.x, len);
-                        }
-                        Type::Head(1) => {
-                            collectors[channel].put_whole(
-                                obj.point.x,
-                                (borders[channel] - obj.point.y) / stanza.scale,
-                            );
-                            println!(
-                                "{:?} {:?}",
-                                borders[channel] - obj.point.y,
-                                (borders[channel] - obj.point.y) / stanza.scale
-                            );
-                        }
-                        _ => {
-                            println!("{:?}", obj);
-                        }
-                    }
-                }
-                i += 1;
-                if i == 8 {
-                    let mut smf = crate::smf::Smf::new(152);
-                    smf.write(&collectors);
-                    self.debug_vert_lines();
-                    panic!("HELLO");
-                }
-            }
+            stanza.process();
         }
 
         Ok(())

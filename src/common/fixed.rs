@@ -19,6 +19,12 @@ impl From<Fixed> for f64 {
     }
 }
 
+impl std::iter::Sum for Fixed {
+    fn sum<I: Iterator<Item = Fixed>>(iter: I) -> Fixed {
+        iter.fold(Fixed::new(0), |a, b| a + b)
+    }
+}
+
 impl std::ops::Sub for Fixed {
     type Output = Fixed;
 
@@ -55,7 +61,7 @@ impl std::ops::Mul for Fixed {
     type Output = Fixed;
 
     fn mul(self, rhs: Self) -> Fixed {
-        Fixed(self.0 * rhs.0 / 10000)
+        Fixed((self.0 as i128 * rhs.0 as i128 / 10000) as i64)
     }
 }
 

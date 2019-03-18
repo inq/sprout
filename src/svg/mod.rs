@@ -5,7 +5,7 @@ pub struct Svg {
 impl Svg {
     pub fn new() -> Self {
         Self {
-            document: svg::Document::new().set("viewBox", (0, 0, 1000, 1000)),
+            document: svg::Document::new().set("viewBox", (0, -1000, 1000, 1000)),
         }
     }
 
