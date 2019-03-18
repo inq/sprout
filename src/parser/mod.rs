@@ -57,7 +57,6 @@ impl Parser {
         let data = stream.decompressed_content().ok_or(Error::NoContent)?;
 
         let mut res = Content::decode(&data)?;
-        let mut point_last = Point::new(0, 0);
         let mut horz_lines = HashSet::new();
         let mut vert_lines = HashSet::new();
         let mut lines = HashSet::new();
@@ -70,6 +69,8 @@ impl Parser {
         stack.push(matrix.clone());
         let mut heads = vec![];
 
+        let mut active = false;
+
         let mut polygon: Option<Polygon> = None;
 
         for op in &mut res.operations {
@@ -78,7 +79,6 @@ impl Parser {
                     [x, y] => {
                         let (x, y) = matrix.transform(x, y);
 
-                        point_last = Point::new(x, y);
                         if let Some(p) = polygon {
                             match p.build() {
                                 PolygonRes::VertLine(v) => vert_lines.insert(v),
@@ -99,7 +99,6 @@ impl Parser {
                         if let Some(p) = &mut polygon {
                             p.push(x, y);
                         }
-                        point_last = Point::new(x, y);
                     }
                     _ => return Err(failure::Error::from(Error::Operand)),
                 },
@@ -206,6 +205,13 @@ impl Parser {
                 "Tf" => {
                     // TextObject: Font, Size
                     // [/F7, 128]
+                    match &mut op.operands[0] {
+                        Object::Name(v) => {
+                            let name = String::from_utf8(v.to_vec()).unwrap();
+                            active = name == "F12";
+                        }
+                        _ => panic!("wrong"),
+                    }
                 }
                 "Tm" => {
                     // Text Matrix
@@ -218,10 +224,13 @@ impl Parser {
                     }
                 }
                 "Td" => {
-                    // Text Position
+                    // Next Line
                     // [0, 0]
-                    for (i, v) in op.operands.iter().enumerate() {
-                        td[i] = Fixed::from(v.as_i64().map(|i| i as f64).or(v.as_f64()).unwrap());
+                    match *Self::read_num_slice(&op.operands)?.as_slice() {
+                        [a, b] => {
+                            tm = tm * Matrix::new(1., 0., 0., 1., a, b);
+                        }
+                        _ => return Err(failure::Error::from(Error::Operand)),
                     }
                 }
                 "Tj" => {
@@ -248,7 +257,7 @@ impl Parser {
                             // 19: 16 rest
                             // 20: rect
                             // 21: triangle
-                            let (x, y) = tm.transform(td[0], td[1]);
+                            let (x, y) = tm.transform(0, 0);
                             let (x, y) = matrix.transform(x, y);
                             let t = match vec.as_slice() {
                                 [0, 7] => Some(Type::Head(4)),
@@ -260,7 +269,9 @@ impl Parser {
                                 _ => None,
                             };
                             if let Some(t) = t {
-                                heads.push(crate::common::Object::new(t, Point::new(x, y)))
+                                if active {
+                                    heads.push(crate::common::Object::new(t, Point::new(x, y)))
+                                }
                             }
                         }
                         etc => {
@@ -277,6 +288,16 @@ impl Parser {
                     panic!("{:?}", op);
                 }
             }
+        }
+
+        if let Some(p) = polygon {
+            match p.build() {
+                PolygonRes::VertLine(v) => vert_lines.insert(v),
+                PolygonRes::HorzLine(v) => horz_lines.insert(v),
+                PolygonRes::Line(l) => lines.insert(l),
+                PolygonRes::Quadrangle(l) => quadras.insert(l),
+                PolygonRes::Empty => true,
+            };
         }
 
         stream.set_plain_content(res.encode().unwrap());
