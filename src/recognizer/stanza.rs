@@ -1,7 +1,7 @@
 use crate::common::{Fixed, Object, VertLine};
 use crate::recognizer::Bar;
 
-use crate::recognizer::{Collector, Note};
+use crate::recognizer::Collector;
 
 #[derive(Debug)]
 pub struct Stanza {
@@ -55,7 +55,7 @@ impl Stanza {
     }
 
     pub fn process(&mut self) {
-        use crate::common::{Fixed, Object, Type};
+        use crate::common::Type;
 
         let borders = [
             self.y + self.height - self.scale * 6,

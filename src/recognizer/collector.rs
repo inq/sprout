@@ -89,7 +89,7 @@ impl Collector {
 
     pub fn put_rest(&mut self, x: Fixed, len: u8) {
         self.clear();
-        let note = Note::Rest(1920 / len as i32);
+        let note = Note::Rest(1920 / i32::from(len));
         self.notes.push(note);
         self.x = Some(x);
     }

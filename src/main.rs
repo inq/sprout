@@ -19,7 +19,7 @@ fn main() -> Result<(), failure::Error> {
             if let Some(Object::Stream(ref mut stream)) = doc.get_object_mut(object_id) {
                 let parsed = Parser::new(stream)?;
                 let mut recognized = Recognizer::new(parsed);
-                recognized.process();
+                let _res = recognized.process();
             }
         }
         break; // TODO: Multiple pages

@@ -34,7 +34,7 @@ impl Action {
 
 impl Smf {
     pub fn new(bpm: u32) -> Self {
-        let tempo: u32 = 60 * 1000000 / bpm;
+        let tempo: u32 = 60 * 1_000_000 / bpm;
         Self {
             messages: vec![
                 Message::MetaEvent {
@@ -63,7 +63,7 @@ impl Smf {
                     Note::Note(data, len) => {
                         for tone in data.iter() {
                             actions.push(Action::NoteOn {
-                                time: time,
+                                time,
                                 ch: i as u8,
                                 note: *tone as u8,
                                 velocity: 96,

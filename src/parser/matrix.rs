@@ -35,7 +35,7 @@ impl Mul<Matrix> for Matrix {
     type Output = Matrix;
 
     fn mul(self, rhs: Self) -> Matrix {
-        let res = Self {
+        Self {
             data: [
                 Vector::new(
                     self.get(0, 0) * rhs.get(0, 0) + self.get(0, 1) * rhs.get(1, 0),
@@ -52,7 +52,6 @@ impl Mul<Matrix> for Matrix {
                         + self.get(1, 2),
                 ),
             ],
-        };
-        res
+        }
     }
 }

@@ -61,7 +61,7 @@ impl std::ops::Mul for Fixed {
     type Output = Fixed;
 
     fn mul(self, rhs: Self) -> Fixed {
-        Fixed((self.0 as i128 * rhs.0 as i128 / 10000) as i64)
+        Fixed((i128::from(self.0) * i128::from(rhs.0) / 10000) as i64)
     }
 }
 

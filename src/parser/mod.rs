@@ -9,7 +9,7 @@ use lopdf::{Object, Stream};
 use matrix::Matrix;
 use vector::Vector;
 
-use crate::common::{Fixed, HorzLine, Line, Point, Polygon, PolygonRes, Quadrangle, VertLine};
+use crate::common::{HorzLine, Line, Point, Polygon, PolygonRes, Quadrangle, VertLine};
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -36,7 +36,7 @@ impl Parser {
     fn read_num_slice(data: &[Object]) -> Result<Vec<f64>, failure::Error> {
         Ok(data
             .iter()
-            .map(|obj| obj.as_i64().map(|i| i as f64).or(obj.as_f64()))
+            .map(|obj| obj.as_i64().map(|i| i as f64).or_else(|| obj.as_f64()))
             .collect::<Option<Vec<_>>>()
             .ok_or(Error::Object)?)
     }
@@ -64,9 +64,8 @@ impl Parser {
         let mut tm = Matrix::identity();
         let mut matrix = Matrix::identity();
 
-        let mut td = [Fixed::new(0); 2];
         let mut stack = vec![];
-        stack.push(matrix.clone());
+        stack.push(matrix);
         let mut heads = vec![];
 
         let mut active = false;
@@ -103,7 +102,7 @@ impl Parser {
                     _ => return Err(failure::Error::from(Error::Operand)),
                 },
                 "c" => match *Self::read_num_slice(&op.operands)?.as_slice() {
-                    [x1, y1, x2, y2, x3, y3] => {
+                    [_x1, _y1, _x2, _y2, _x3, _y3] => {
                         // Curve
                     }
                     _ => return Err(failure::Error::from(Error::Operand)),
@@ -123,7 +122,7 @@ impl Parser {
                 }
                 "q" => {
                     // Save the current graphics state on the graphics state stack
-                    stack.push(matrix.clone());
+                    stack.push(matrix);
                 }
                 "gs" => {
                     // Set the specified parameters in the graphics state
@@ -236,7 +235,6 @@ impl Parser {
                 "Tj" => {
                     // TextShowing::??
                     // [()]
-                    let x = op.clone();
                     match &mut op.operands[0] {
                         Object::String(vec, _format) => {
                             use crate::common::Type;

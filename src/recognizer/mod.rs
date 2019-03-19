@@ -4,7 +4,7 @@ mod stanza;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::common::{Fixed, Object, Type};
+use crate::common::Fixed;
 use crate::Parser;
 pub use bar::Bar;
 pub use stanza::Stanza;
@@ -37,7 +37,7 @@ impl Recognizer {
         }
         Ok(*counts
             .iter()
-            .rfind(|&(len, count)| count % 5 == 0)
+            .rfind(|&(_len, count)| count % 5 == 0)
             .ok_or(Error::NoStanza)?
             .0)
     }
