@@ -95,9 +95,11 @@ pub struct HorzLine {
 
 impl HorzLine {
     pub fn new<X1: Into<Fixed>, X2: Into<Fixed>, Y: Into<Fixed>>(x1: X1, x2: X2, y: Y) -> Self {
+        let x1 = x1.into();
+        let x2 = x2.into();
         Self {
-            x1: x1.into(),
-            x2: x2.into(),
+            x1: std::cmp::min(x1, x2),
+            x2: std::cmp::max(x1, x2),
             y: y.into(),
         }
     }
@@ -107,7 +109,7 @@ impl HorzLine {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct VertLine {
     pub x: Fixed,
     pub y1: Fixed,
@@ -116,10 +118,12 @@ pub struct VertLine {
 
 impl VertLine {
     pub fn new<X: Into<Fixed>, Y1: Into<Fixed>, Y2: Into<Fixed>>(x: X, y1: Y1, y2: Y2) -> Self {
+        let y1 = y1.into();
+        let y2 = y2.into();
         Self {
             x: x.into(),
-            y1: y1.into(),
-            y2: y2.into(),
+            y1: std::cmp::min(y1, y2),
+            y2: std::cmp::max(y1, y2),
         }
     }
 }

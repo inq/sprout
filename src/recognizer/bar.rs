@@ -1,4 +1,4 @@
-use crate::common::{Fixed, Object};
+use crate::common::{Fixed, Object, VertLine};
 use std::cmp::Ordering;
 
 #[derive(Debug)]
@@ -7,6 +7,7 @@ pub struct Bar {
     pub high: Vec<u8>,
     pub low: Vec<u8>,
     pub store: Vec<Object>,
+    pub stems: Vec<(bool, VertLine)>,
 }
 
 impl Bar {
@@ -16,7 +17,17 @@ impl Bar {
             high: vec![],
             low: vec![],
             store: vec![],
+            stems: vec![],
         }
+    }
+
+    pub fn debug(&self) {
+        println!(
+            "Bar x: {:?}, stems: {}, objects: {}",
+            self.x,
+            self.stems.len(),
+            self.store.len()
+        );
     }
 }
 

@@ -50,7 +50,7 @@ impl Recognizer {
             if line.len() == width {
                 x = Some(line.x1);
                 ys.insert(line.y);
-                false
+                true
             } else {
                 true
             }
@@ -110,8 +110,6 @@ impl Recognizer {
     }
 
     pub fn process(&mut self) -> Result<(), failure::Error> {
-        self.debug_vert_lines();
-
         let mut stanzas = self.detect_stanzas()?;
         for stanza in stanzas.iter_mut() {
             self.parser
@@ -121,11 +119,12 @@ impl Recognizer {
         }
         for stanza in stanzas.iter_mut().rev() {
             self.parser.objects.retain(|obj| !stanza.put_object(obj));
+            self.parser.vert_lines.retain(|line| !stanza.put_stem(line));
         }
-
         for stanza in stanzas.iter_mut() {
             stanza.process();
         }
+        self.debug_vert_lines();
 
         Ok(())
     }

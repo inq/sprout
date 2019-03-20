@@ -73,6 +73,14 @@ impl std::ops::Div for Fixed {
     }
 }
 
+impl std::ops::Div<i64> for Fixed {
+    type Output = Self;
+
+    fn div(self, rhs: i64) -> Self {
+        Self(self.0 / rhs)
+    }
+}
+
 impl std::ops::Mul<i64> for Fixed {
     type Output = Fixed;
 
