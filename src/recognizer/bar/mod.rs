@@ -1,3 +1,5 @@
+mod stems;
+
 use crate::common::{Fixed, Object, VertLine};
 use std::cmp::Ordering;
 
@@ -7,7 +9,7 @@ pub struct Bar {
     pub high: Vec<u8>,
     pub low: Vec<u8>,
     pub store: Vec<Object>,
-    pub stems: Vec<(bool, VertLine)>,
+    pub stems: stems::Stems,
 }
 
 impl Bar {
@@ -17,17 +19,12 @@ impl Bar {
             high: vec![],
             low: vec![],
             store: vec![],
-            stems: vec![],
+            stems: Default::default(),
         }
     }
 
     pub fn debug(&self) {
-        println!(
-            "Bar x: {:?}, stems: {}, objects: {}",
-            self.x,
-            self.stems.len(),
-            self.store.len()
-        );
+        println!("Bar x: {:?}, objects: {}", self.x, self.store.len());
     }
 }
 

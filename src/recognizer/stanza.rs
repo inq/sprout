@@ -57,23 +57,43 @@ impl Stanza {
         }
     }
 
-    pub fn put_stem(&mut self, vert_line: &VertLine) -> bool {
-        if self.y < vert_line.y2 {
-            for bar in self.bars.iter_mut().rev() {
-                if bar.x < vert_line.x {
-                    bar.stems.push((false, vert_line.clone()));
-                    break;
-                }
-            }
-            true
-        } else {
-            false
-        }
+    fn is_high(&self, stem: &VertLine) -> bool {
+        let mut points = vec![self.y, self.y + self.scale * 5, stem.y1, stem.y2];
+        let length = stem.y2 - stem.y1 + self.scale * 5;
+        points.sort();
+        *points.last().unwrap() - *points.first().unwrap() < length
     }
 
-    fn is_attached(obj: &Object, stem: &VertLine, flexibility: Fixed, width: Fixed) -> bool {
-        (obj.point.x <= stem.x && obj.point.x + width >= stem.x)
-            && (obj.point.y > stem.y1 - flexibility && obj.point.y < stem.y2 + flexibility)
+    fn is_low(&self, stem: &VertLine) -> bool {
+        let mut points = vec![
+            self.y + self.height,
+            self.y + self.height - self.scale * 5,
+            stem.y1,
+            stem.y2,
+        ];
+        let length = stem.y2 - stem.y1 + self.scale * 5;
+        points.sort();
+        *points.last().unwrap() - *points.first().unwrap() < length
+    }
+    pub fn put_stem(&mut self, stem: &VertLine) -> bool {
+        let high = self.is_high(stem);
+        let low = self.is_low(stem);
+        assert!(!high || !low, "It cannot be both!");
+        if !high && !low {
+            return false;
+        }
+        for bar in self.bars.iter_mut().rev() {
+            if bar.x < stem.x {
+                if high {
+                    bar.stems.push_high(stem);
+                }
+                if low {
+                    bar.stems.push_low(stem);
+                }
+                return true;
+            }
+        }
+        false
     }
 
     pub fn process(&mut self) {
@@ -85,11 +105,9 @@ impl Stanza {
         ];
         let mut collectors = [Collector::new(), Collector::new()];
 
-        let mut i = 0;
-
         for bar in self.bars.iter_mut() {
             bar.store.sort_by(|a, b| a.point.x.cmp(&b.point.x));
-            bar.stems.sort_by(|a, b| b.1.x.cmp(&a.1.x)); // Reversed order
+            bar.stems.sort();
             collectors[0].prepare();
             collectors[1].prepare();
             for obj in bar.store.iter() {
@@ -102,31 +120,14 @@ impl Stanza {
                 match obj.t {
                     Type::Head(4) => {
                         if self.head_size.is_none() {
-                            let head_size = (bar.stems.last().unwrap().1.x - obj.point.x) * 1.1;
-                            self.head_size = Some(head_size);
+                            self.head_size = bar.stems.get_head_size(&obj);
                         }
                         if let Some(head_size) = self.head_size {
-                            let (used, stem) = &bar.stems.last().unwrap();
-                            let attached = Self::is_attached(obj, stem, self.scale / 2, head_size);
-                            if !attached {
-                                assert!(*used);
-                                bar.stems.pop();
-                                assert!(bar.stems.len() > 0, "Not attached {:?}", obj);
-                                let (used, stem) = &bar.stems.last().unwrap();
-                                let attached =
-                                    Self::is_attached(obj, stem, self.scale / 2, head_size);
-                                assert!(
-                                    attached,
-                                    "Not attached {:?} + {:?}",
-                                    obj,
-                                    bar.stems.last()
-                                );
+                            if !bar.stems.attach(obj, self.scale / 2, head_size) {
+                                panic!("Cannot attach {:?}", obj);
                             }
-                            bar.stems.last_mut().unwrap().0 = true; // Used!
-
-                            println!("Attached {:?} + {:?}", obj, bar.stems.last());
                         } else {
-                            panic!("No way");
+                            panic!("Cannot recognize head size");
                         }
 
                         collectors[channel].put_quarter(
