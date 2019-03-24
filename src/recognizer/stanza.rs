@@ -75,11 +75,25 @@ impl Stanza {
         points.sort();
         *points.last().unwrap() - *points.first().unwrap() < length
     }
+
+    fn is_mid(&self, stem: &VertLine) -> bool {
+        let mut points = vec![
+            self.y + self.scale * 5,
+            self.y + self.height - self.scale * 5,
+            stem.y1,
+            stem.y2,
+        ];
+        let length = stem.y2 - stem.y1 + self.scale * 5;
+        points.sort();
+        *points.last().unwrap() - *points.first().unwrap() < length
+    }
+
     pub fn put_stem(&mut self, stem: &VertLine) -> bool {
         let high = self.is_high(stem);
         let low = self.is_low(stem);
+        let mid = self.is_mid(stem);
         assert!(!high || !low, "It cannot be both!");
-        if !high && !low {
+        if !high && !low && !mid {
             return false;
         }
         for bar in self.bars.iter_mut().rev() {
@@ -89,6 +103,9 @@ impl Stanza {
                 }
                 if low {
                     bar.stems.push_low(stem);
+                }
+                if !high && !low {
+                    bar.stems.push_mid(stem);
                 }
                 return true;
             }
@@ -106,7 +123,10 @@ impl Stanza {
         let mut collectors = [Collector::new(), Collector::new()];
 
         for bar in self.bars.iter_mut() {
-            bar.store.sort_by(|a, b| a.point.x.cmp(&b.point.x));
+            bar.store.sort_by(|a, b| match a.point.x.cmp(&b.point.x) {
+                std::cmp::Ordering::Equal => b.point.y.cmp(&a.point.y),
+                etc => etc,
+            });
             bar.stems.sort();
             collectors[0].prepare();
             collectors[1].prepare();
@@ -118,7 +138,7 @@ impl Stanza {
                 };
 
                 match obj.t {
-                    Type::Head(4) => {
+                    Type::Head(size) if size == 2 || size == 4 => {
                         if self.head_size.is_none() {
                             if let Some(head_size) = bar.stems.get_head_size(&obj) {
                                 if head_size > self.scale {
@@ -131,6 +151,7 @@ impl Stanza {
                         }
 
                         collectors[channel].put_quarter(
+                            // TODO: quarter or half
                             obj.point.x,
                             (borders[channel] - obj.point.y) / self.scale,
                         );

@@ -26,22 +26,25 @@ impl Store {
     }
 
     fn attach(&mut self, obj: &Object, flexibility: Fixed, width: Option<Fixed>) -> bool {
+        let mut res = false;
         // Try current
         if let Some(current) = &self.current {
+            println!("T existing {:?} + {:?}", current, obj);
             if Self::attachable(current, obj, flexibility, width) {
                 println!("Attached existing {:?} + {:?}", current, obj);
-                return true;
+                res = true;
             }
         }
         // Try new one
         if let Some(new) = self.stems.last() {
+            println!("T new {:?} + {:?}", new, obj);
             if Self::attachable(new, obj, flexibility, width) {
                 println!("Attached new {:?} + {:?}", new, obj);
                 self.current = self.stems.pop();
-                return true;
+                res = true;
             }
         }
-        return false;
+        return res;
     }
 }
 
@@ -49,12 +52,14 @@ impl Store {
 pub struct Stems {
     high: Store,
     low: Store,
+    mid: Store,
 }
 
 impl Stems {
     pub fn sort(&mut self) {
         self.high.sort();
         self.low.sort();
+        self.mid.sort();
     }
 
     pub fn push_high(&mut self, stem: &VertLine) {
@@ -65,15 +70,26 @@ impl Stems {
         self.low.push(stem);
     }
 
+    pub fn push_mid(&mut self, stem: &VertLine) {
+        self.mid.push(stem);
+    }
+
     pub fn get_head_size(&self, obj: &Object) -> Option<Fixed> {
-        [self.high.get_head_size(obj), self.low.get_head_size(obj)]
-            .iter()
-            .flatten()
-            .min()
-            .map(|res| *res * 1.1)
+        [
+            self.high.get_head_size(obj),
+            self.low.get_head_size(obj),
+            self.mid.get_head_size(obj),
+        ]
+        .iter()
+        .flatten()
+        .min()
+        .map(|res| *res * 1.1)
     }
 
     pub fn attach(&mut self, obj: &Object, flexibility: Fixed, width: Option<Fixed>) -> bool {
-        self.high.attach(obj, flexibility, width) || self.low.attach(obj, flexibility, width)
+        let high = self.high.attach(obj, flexibility, width);
+        let low = self.low.attach(obj, flexibility, width);
+        let mid = self.mid.attach(obj, flexibility, width);
+        high || low || mid
     }
 }
