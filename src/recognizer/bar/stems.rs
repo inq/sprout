@@ -17,16 +17,15 @@ impl Store {
     }
 
     fn get_head_size(&self, obj: &Object) -> Option<Fixed> {
-        assert!(self.current.is_none());
         self.stems.last().map(|stem| stem.x - obj.point.x)
     }
 
-    fn attachable(stem: &VertLine, obj: &Object, flexibility: Fixed, width: Fixed) -> bool {
-        (obj.point.x <= stem.x && obj.point.x + width >= stem.x)
+    fn attachable(stem: &VertLine, obj: &Object, flexibility: Fixed, width: Option<Fixed>) -> bool {
+        (obj.point.x <= stem.x && width.map_or(true, |w| obj.point.x + w >= stem.x))
             && (obj.point.y > stem.y1 - flexibility && obj.point.y < stem.y2 + flexibility)
     }
 
-    fn attach(&mut self, obj: &Object, flexibility: Fixed, width: Fixed) -> bool {
+    fn attach(&mut self, obj: &Object, flexibility: Fixed, width: Option<Fixed>) -> bool {
         // Try current
         if let Some(current) = &self.current {
             if Self::attachable(current, obj, flexibility, width) {
@@ -74,7 +73,7 @@ impl Stems {
             .map(|res| *res * 1.1)
     }
 
-    pub fn attach(&mut self, obj: &Object, flexibility: Fixed, width: Fixed) -> bool {
+    pub fn attach(&mut self, obj: &Object, flexibility: Fixed, width: Option<Fixed>) -> bool {
         self.high.attach(obj, flexibility, width) || self.low.attach(obj, flexibility, width)
     }
 }

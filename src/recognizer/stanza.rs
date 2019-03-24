@@ -120,14 +120,14 @@ impl Stanza {
                 match obj.t {
                     Type::Head(4) => {
                         if self.head_size.is_none() {
-                            self.head_size = bar.stems.get_head_size(&obj);
-                        }
-                        if let Some(head_size) = self.head_size {
-                            if !bar.stems.attach(obj, self.scale / 2, head_size) {
-                                panic!("Cannot attach {:?}", obj);
+                            if let Some(head_size) = bar.stems.get_head_size(&obj) {
+                                if head_size > self.scale {
+                                    self.head_size = Some(head_size);
+                                }
                             }
-                        } else {
-                            panic!("Cannot recognize head size");
+                        }
+                        if !bar.stems.attach(obj, self.scale / 2, self.head_size) {
+                            panic!("Cannot attach {:?}, head_size: {:?}", obj, self.head_size);
                         }
 
                         collectors[channel].put_quarter(
